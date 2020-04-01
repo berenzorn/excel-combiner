@@ -41,7 +41,8 @@ class Common(table.Table):
     def table_combine(self) -> list:
         exec = (f"SELECT sparkle.country, c9.network, c9.tadig, c9.mcc, c9.mnoid, c9.profile, c9.ws_price, "
                 f"c9.ws_inc, c9.retail_price, c9.rp_inc, sparkle.moc, sparkle.mtc, sparkle.sms_mo, "
-                f"sparkle.sms_mt, sparkle.gprs FROM c9 INNER JOIN sparkle ON c9.tadig = sparkle.tadig;")
+                f"sparkle.sms_mt, sparkle.gprs, round((c9.ws_price/sparkle.gprs)*100, 2) as '(C9/Sparkle) %'  "
+                f"FROM c9 INNER JOIN sparkle ON c9.tadig = sparkle.tadig;")
         self.table_execute(exec)
         combined = self.cursor.fetchall()
         return combined
@@ -63,7 +64,8 @@ def read_excel(filename, skiprows) -> list:
 def write_excel(combined: list, filename: str):
     df = pd.DataFrame(
         combined, columns=['country', 'network', 'tadig', 'mcc', 'mnoid', 'profile', 'ws_price',
-                           'ws_inc', 'retail_price', 'rp_inc', 'moc', 'mtc', 'sms_mo', 'sms_mt', 'gprs'])
+                           'ws_inc', 'retail_price', 'rp_inc', 'moc', 'mtc', 'sms_mo', 'sms_mt',
+                           'gprs', '(C9/Sparkle) %'])
     df.to_excel(filename)
 
 
@@ -80,9 +82,9 @@ def fill_table(table, name: str, skiprows: int):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("c9", type=str, help="Ôàéë Ñ9")
-    parser.add_argument("sparkle", type=str, help="Ôàéë Sparkle")
-    parser.add_argument("output", type=str, help="Âûõîäíîé ôàéë")
+    parser.add_argument("c9", type=str, help="Ğ¤Ğ°Ğ¹Ğ» Ğ¡9")
+    parser.add_argument("sparkle", type=str, help="Ğ¤Ğ°Ğ¹Ğ» Sparkle")
+    parser.add_argument("output", type=str, help="Ğ’Ñ‹Ñ…Ğ¾Ğ´Ğ½Ğ¾Ğ¹ Ñ„Ğ°Ğ¹Ğ»")
     args = parser.parse_args()
 
     creds = config()
