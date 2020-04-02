@@ -41,7 +41,7 @@ class Common(table.Table):
     def table_combine(self) -> list:
         exec = (f"SELECT sparkle.country, c9.network, c9.tadig, c9.mcc, c9.mnoid, c9.profile, c9.ws_price, "
                 f"c9.ws_inc, c9.retail_price, c9.rp_inc, sparkle.moc, sparkle.mtc, sparkle.sms_mo, "
-                f"sparkle.sms_mt, sparkle.gprs, round((c9.ws_price/sparkle.gprs)*100, 2) as '(C9/Sparkle) %'  "
+                f"sparkle.sms_mt, sparkle.gprs, round(((c9.ws_price/1.1)/sparkle.gprs)*100, 2) as '(C9/Sparkle) %'  "
                 f"FROM c9 INNER JOIN sparkle ON c9.tadig = sparkle.tadig;")
         self.table_execute(exec)
         combined = self.cursor.fetchall()
