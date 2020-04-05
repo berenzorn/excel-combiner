@@ -6,11 +6,11 @@ from sparkle import Sparkle
 
 
 class Common(Table):
-    def table_combine(self) -> list:
-        exec = (f"SELECT sparkle.country, c9.network, c9.tadig, c9.mcc, c9.mnoid, c9.profile, c9.ws_price, "
-                f"c9.ws_inc, c9.retail_price, c9.rp_inc, sparkle.moc, sparkle.mtc, sparkle.sms_mo, "
-                f"sparkle.sms_mt, sparkle.gprs, round(((c9.ws_price/1.1)/sparkle.gprs)*100, 2) as '(C9/Sparkle) %'  "
-                f"FROM c9 INNER JOIN sparkle ON c9.tadig = sparkle.tadig;")
+    def table_combine(self, c9, sp) -> list:
+        exec = (f"SELECT {sp}.country, {c9}.network, {c9}.tadig, {c9}.mcc, {c9}.mnoid, {c9}.profile, "
+                f"{c9}.ws_price, {c9}.ws_inc, {c9}.retail_price, {c9}.rp_inc, {sp}.moc, {sp}.mtc, {sp}.sms_mo, "
+                f"{sp}.sms_mt, {sp}.gprs, round((({c9}.ws_price/1.1)/{sp}.gprs)*100, 2) as '(C9/Sparkle) %'  "
+                f"FROM {c9} INNER JOIN {sp} ON {c9}.tadig = {sp}.tadig;")
         self.table_execute(exec)
         combined = self.cursor.fetchall()
         return combined
@@ -18,7 +18,7 @@ class Common(Table):
 
 def config() -> tuple:
     mysql_user = 'root'
-    mysql_pass = 'funwfats'
+    mysql_pass = 'balloon'
     mysql_host = 'localhost'
     mysql_base = 'sys'
     return mysql_user, mysql_pass, mysql_host, mysql_base
@@ -61,5 +61,5 @@ if __name__ == '__main__':
     sp_table = Sparkle(name=str(args.sparkle).split('.')[0], creds=creds)
     fill_table(sp_table, args.sparkle, 1)
     cmn_table = Common(name=str(args.output), creds=creds)
-    combined = cmn_table.table_combine()
+    combined = cmn_table.table_combine(c9_table, sp_table)
     write_excel(combined, args.output)

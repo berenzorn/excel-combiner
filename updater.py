@@ -5,9 +5,9 @@ from table import Table
 
 
 class Common(Table):
-    def table_combine(self) -> list:
+    def table_combine(self, name) -> list:
         exec = (f"SELECT country, network, tadig, mcc, mnoid, profile, ws_price, ws_inc, "
-                f"retail_price, rp_inc, 4g, blocking, cheapest FROM c9update;")
+                f"retail_price, rp_inc, 4g, blocking, cheapest FROM {name};")
         self.table_execute(exec)
         combined = self.cursor.fetchall()
         return combined
@@ -15,7 +15,7 @@ class Common(Table):
 
 def config() -> tuple:
     mysql_user = 'root'
-    mysql_pass = 'funwfats'
+    mysql_pass = 'balloon'
     mysql_host = 'localhost'
     mysql_base = 'sys'
     return mysql_user, mysql_pass, mysql_host, mysql_base
@@ -67,6 +67,5 @@ if __name__ == '__main__':
     c9_table.fetch_countries()
     c9_table.end_table_connect()
     cmn_table = Common(name=str(args.output), creds=creds)
-    combined = cmn_table.table_combine()
+    combined = cmn_table.table_combine(c9_table.name)
     write_excel(combined, args.output)
-
