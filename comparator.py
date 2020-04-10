@@ -19,8 +19,6 @@ class C9(Table):
                   '`rp_inc` INT NULL, `4g` VARCHAR(10) NULL, `blocking` VARCHAR(50) NULL, `cheapest` INT NULL, '
                   'PRIMARY KEY (`id`));')
         self.table_execute(create)
-        self.table_execute(f"UPDATE {self.name} SET `4g` = NULL where `4g` = 'nan';")
-        self.table_execute(f"UPDATE {self.name} SET `blocking` = NULL where `blocking` = 'nan';")
 
     def fetch_countries(self):
         self.cursor.execute(f"SELECT country from {self.name};")
@@ -70,6 +68,9 @@ def fill_table(table, name: str, skiprows: int):
     xlist = read_excel(name, skiprows)
     for row in xlist:
         table.table_append(row=row[1:])
+    table.table_execute(f"UPDATE {table.name} SET `4g` = NULL where `4g` = 'nan';")
+    table.table_execute(f"UPDATE {table.name} SET `blocking` = NULL where `blocking` = 'nan';")
+
     # for i in xlist:
     #     print(i)
     # return xlist

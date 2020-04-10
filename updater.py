@@ -5,9 +5,9 @@ from table import Table
 
 
 class Common(Table):
-    def table_combine(self, name) -> list:
+    def table_combine(self) -> list:
         exec = (f"SELECT country, network, tadig, mcc, mnoid, profile, ws_price, ws_inc, "
-                f"retail_price, rp_inc, 4g, blocking, cheapest FROM {name};")
+                f"retail_price, rp_inc, 4g, blocking, cheapest FROM c9update;")
         self.table_execute(exec)
         combined = self.cursor.fetchall()
         return combined
@@ -41,17 +41,10 @@ def fill_table(table, name: str, skiprows: int):
     xlist = read_excel(name, skiprows)
     for row in xlist:
         table.table_append(row=row)
-    table.end_table_connect()
-
-
-def fill_table_4g(table, name: str, skiprows: int):
-    if not table.table_check():
-        table.table_make_4g()
-    table.table_truncate()
-
-    xlist = read_excel(name, skiprows)
-    for row in xlist:
-        table.table_append_4g(row=row)
+    print("4g updated")
+    table.table_execute(f"UPDATE {table.name} SET `4g` = NULL where `4g` = 'nan';")
+    print("blocking updated")
+    table.table_execute(f"UPDATE {table.name} SET `blocking` = NULL where `blocking` = 'nan';")
 
 
 if __name__ == '__main__':
@@ -63,9 +56,11 @@ if __name__ == '__main__':
 
     creds = config()
     c9_table = C9(name=str(args.c9).split('.')[0], creds=creds)
-    fill_table_4g(c9_table, args.c9, 3)
+    fill_table(c9_table, args.c9, 3)
     c9_table.fetch_countries()
     c9_table.end_table_connect()
     cmn_table = Common(name=str(args.output), creds=creds)
-    combined = cmn_table.table_combine(c9_table.name)
-    write_excel(combined, args.output)
+    combined = cmn_table.table_combine()
+    print(combined[0])
+    # write_excel(combined, args.output)
+
