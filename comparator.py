@@ -8,36 +8,30 @@ class C9(Table):
         string = ""
         for i in row:
             string = f"{string}, '{str(i).rstrip()}'"
-        insert = f"INSERT into {self.name} (country, network, tadig, mcc, mnoid, profile, ws_price, ws_inc, " \
-            f"retail_price, rp_inc, 4g, blocking, cheapest) VALUES ({string[2:]});"
+        sid = f"'{row[3]}{row[2]}{row[4]}', {string[2:]}"
+        insert = f"INSERT INTO {self.name} (id, country, network, tadig, mcc, mnoid, profile, ws_price, ws_inc, " \
+            f"retail_price, rp_inc, 4g, blocking, cheapest) VALUES ({sid});"
         self.table_execute(insert)
 
     def table_make(self):
-        create = (f'CREATE TABLE {self.name} (`id` INT NOT NULL AUTO_INCREMENT, `country` VARCHAR(10) NULL, '
-                  '`network` VARCHAR(120) NULL, `tadig` VARCHAR(10) NULL, `mcc` VARCHAR(15) NULL, `mnoid` INT NULL, '
-                  '`profile` VARCHAR(10) NULL, `ws_price` FLOAT NULL, `ws_inc` INT NULL, `retail_price` FLOAT NULL, '
-                  '`rp_inc` INT NULL, `4g` VARCHAR(10) NULL, `blocking` VARCHAR(50) NULL, `cheapest` INT NULL, '
-                  'PRIMARY KEY (`id`));')
+        create = (f"CREATE TABLE {self.name} (`id` VARCHAR(20) NOT NULL, `country` VARCHAR(10) NULL, `network` VARCHAR(120) NULL, "
+                  f"`tadig` VARCHAR(10) NULL, `mcc` VARCHAR(15) NULL, `mnoid` INT NULL, `profile` VARCHAR(10) NULL, `ws_price` FLOAT NULL, "
+                  f"`ws_inc` INT NULL, `retail_price` FLOAT NULL, `rp_inc` INT NULL, `4g` VARCHAR(10) NULL, `blocking` VARCHAR(50) NULL, "
+                  f"`cheapest` VARCHAR(10) NULL, PRIMARY KEY (`id`));")
         self.table_execute(create)
 
-    def fetch_countries(self):
-        self.cursor.execute(f"SELECT country from {self.name};")
-        country_set = list(set(self.cursor.fetchall()))
-        country_list = [x[0] for x in country_set]
-        for i in country_list:
-            self.table_execute(f"UPDATE {self.name} AS C INNER JOIN (SELECT country, MIN(ws_price) as MINI, "
-                               f"cheapest from {self.name} where country = '{i}') AS A USING (country) "
-                               f"SET C.cheapest = '1' WHERE C.ws_price = A.MINI;")
+    def show_difference(self, prev):
+        self.table_execute(f"ALTER TABLE {self.name} ADD COLUMN `differ` INT NULL AFTER `cheapest`;")
+        self.table_execute(f"UPDATE {self.name} AS C CROSS JOIN (SELECT {prev.name}.id, {prev.name}.cheapest, {self.name}.cheapest AS MARK "
+                           f"FROM {prev.name} CROSS JOIN {self.name} on {prev.name}.id = {self.name}.id WHERE {prev.name}.cheapest IS NULL "
+                           f"AND {self.name}.cheapest IS NOT NULL) AS F USING (id) SET C.differ = '1' WHERE F.MARK IS NOT NULL;")
         self.cnx.commit()
 
 
 class Common(Table):
-    def table_combine(self) -> list:
-        exec = (f"SELECT country, network, tadig, mcc, mnoid, profile, ws_price, ws_inc, "
-                f"retail_price, rp_inc, 4g, blocking, cheapest FROM c9update;")
-        self.table_execute(exec)
-        combined = self.cursor.fetchall()
-        return combined
+    def table_combine(self, name) -> list:
+        self.table_execute(f"SELECT * FROM {name};")
+        return self.cursor.fetchall()
 
 
 def config() -> tuple:
@@ -54,49 +48,41 @@ def read_excel(filename, skiprows) -> list:
 
 
 def write_excel(combined: list, filename: str):
-    df = pd.DataFrame(
-        combined, columns=['country', 'network', 'tadig', 'mcc', 'mnoid', 'profile', 'ws_price',
-                           'ws_inc', 'retail_price', 'rp_inc', '4g', 'blocking', 'cheapest'])
+    df = pd.DataFrame(combined,
+                      columns=['country', 'network', 'tadig', 'mcc', 'mnoid', 'profile', 'ws_price',
+                               'ws_inc', 'retail_price', 'rp_inc', '4g', 'blocking', 'cheapest', 'differ'])
     df.to_excel(filename)
 
 
 def fill_table(table, name: str, skiprows: int):
-    if not table.table_check():
-        table.table_make()
-    table.table_truncate()
+    if table.table_check():
+        table.table_drop()
+    table.table_make()
 
     xlist = read_excel(name, skiprows)
     for row in xlist:
         table.table_append(row=row[1:])
     table.table_execute(f"UPDATE {table.name} SET `4g` = NULL where `4g` = 'nan';")
     table.table_execute(f"UPDATE {table.name} SET `blocking` = NULL where `blocking` = 'nan';")
-
-    # for i in xlist:
-    #     print(i)
-    # return xlist
+    table.table_execute(f"UPDATE {table.name} SET `cheapest` = NULL where `cheapest` = 'nan';")
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("c9", type=str, help="Файл С9")
-    parser.add_argument("update", type=str, help="Файл Update")
-    # parser.add_argument("output", type=str, help="Выходной файл")
+    parser.add_argument("c9", type=str, help="Файл прошлый")
+    parser.add_argument("update", type=str, help="Файл текущий")
+    parser.add_argument("output", type=str, help="Выходной файл")
     args = parser.parse_args()
 
     creds = config()
     c9_table = C9(name=str(args.c9).split('.')[0], creds=creds)
     fill_table(c9_table, args.c9, 1)
-    # table_c9 = fill_table(c9_table, args.c9, 3)
-    # print(len(table_c9[0]))
-    c9_update = C9(name=str(args.c9).split('.')[0], creds=creds)
+    c9_update = C9(name=str(args.update).split('.')[0], creds=creds)
     fill_table(c9_update, args.update, 1)
-    # update_c9 = fill_table(c9_update, args.update, 3)
-    # print(len(update_c9[0]))
+    c9_update.show_difference(c9_table)
 
-
-    # c9_table.fetch_countries()
-    # c9_table.end_table_connect()
-    # cmn_table = Common(name=str(args.output), creds=creds)
-    # combined = cmn_table.table_combine()
-    # write_excel(combined, args.output)
-
+    cmn_table = Common(name=str(args.output), creds=creds)
+    combined = cmn_table.table_combine(c9_update.name)
+    write_excel(combined, args.output)
+    c9_table.end_table_connect()
+    c9_update.end_table_connect()

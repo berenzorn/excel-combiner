@@ -27,7 +27,10 @@ class Table:
             return False
 
     def table_execute(self, query: str):
-        self.cursor.execute(query)
+        try:
+            self.cursor.execute(query)
+        except mysql.connector.errors.ProgrammingError:
+            return False
         self.cnx.commit()
 
     def end_table_connect(self):
@@ -49,6 +52,10 @@ class Table:
         truncate = f"TRUNCATE TABLE {self.name};"
         self.table_execute(truncate)
 
+    def table_drop(self):
+        drop = f"DROP TABLE {self.name};"
+        self.table_execute(drop)
+
     def table_make(self):
         pass
 
@@ -56,5 +63,7 @@ class Table:
         string = ""
         for i in row:
             string = f"{string}, '{str(i).rstrip()}'"
+            print(string)
         insert = f"INSERT into {self.name} VALUES ({string[2:]});"
         self.table_execute(insert)
+
