@@ -1,16 +1,48 @@
-import argparse
-from c9 import C9
 import pandas as pd
-from table import Table
-from sparkle import Sparkle
+import table
+import argparse
 
 
-class Common(Table):
-    def table_combine(self, c9, sp) -> list:
-        exec = (f"SELECT {sp}.country, {c9}.network, {c9}.tadig, {c9}.mcc, {c9}.mnoid, {c9}.profile, "
-                f"{c9}.ws_price, {c9}.ws_inc, {c9}.retail_price, {c9}.rp_inc, {sp}.moc, {sp}.mtc, {sp}.sms_mo, "
-                f"{sp}.sms_mt, {sp}.gprs, round((({c9}.ws_price/1.1)/{sp}.gprs)*100, 2) as '(C9/Sparkle) %'  "
-                f"FROM {c9} INNER JOIN {sp} ON {c9}.tadig = {sp}.tadig;")
+class C9(table.Table):
+    def table_append(self, row: list):
+        string = ""
+        for i in row:
+            string = f"{string}, '{str(i).rstrip()}'"
+        sid = f"'{row[3]}{row[2]}{row[4]}', {string[2:]}"
+        insert = f"INSERT into {self.name} VALUES ({sid});"
+        self.table_execute(insert)
+
+    def table_make(self):
+        create = (f"CREATE TABLE {self.name} (`id` VARCHAR(20) NOT NULL, `country` VARCHAR(45) NULL, "
+                  "`network` VARCHAR(100) NULL, `tadig` VARCHAR(10) NULL, `mcc` VARCHAR(45) NULL, `mnoid` INT NULL, "
+                  "`profile` VARCHAR(45) NULL, `ws_price` FLOAT NULL, `ws_inc` INT NULL, `retail_price` FLOAT NULL, "
+                  "`rp_inc` INT NULL, PRIMARY KEY (`id`));")
+        self.table_execute(create)
+
+
+class Sparkle(table.Table):
+    def table_append(self, row: list):
+        string = ""
+        for i in row:
+            string = f"{string}, '{str(i).rstrip()}'"
+        insert = f"INSERT into {self.name} (area, country, partner_name, tadig, moc, mtc, sms_mo, sms_mt, gprs) " \
+            f"VALUES ({string[2:]});"
+        self.table_execute(insert)
+
+    def table_make(self):
+        create = (f"CREATE TABLE {self.name} (`id` INT NOT NULL AUTO_INCREMENT, `area` VARCHAR(45) NULL, "
+                  f"`country` VARCHAR(45) NULL, `partner_name` VARCHAR(100) NULL, `tadig` VARCHAR(10) NULL, "
+                  f"`moc` FLOAT NULL, `mtc` INT NULL, `sms_mo` FLOAT NULL, `sms_mt` INT NULL, `gprs` FLOAT NULL, "
+                  f"PRIMARY KEY (`id`));")
+        self.table_execute(create)
+
+
+class Common(table.Table):
+    def table_combine(self) -> list:
+        exec = (f"SELECT sparkle.country, c9.network, c9.tadig, c9.mcc, c9.mnoid, c9.profile, c9.ws_price, "
+                f"c9.ws_inc, c9.retail_price, c9.rp_inc, sparkle.moc, sparkle.mtc, sparkle.sms_mo, "
+                f"sparkle.sms_mt, sparkle.gprs, round(((c9.ws_price/1.1)/sparkle.gprs)*100, 2) as '(C9/Sparkle) %'  "
+                f"FROM c9 INNER JOIN sparkle ON c9.tadig = sparkle.tadig;")
         self.table_execute(exec)
         combined = self.cursor.fetchall()
         return combined
@@ -18,7 +50,7 @@ class Common(Table):
 
 def config() -> tuple:
     mysql_user = 'root'
-    mysql_pass = 'balloon'
+    mysql_pass = 'funwfats'
     mysql_host = 'localhost'
     mysql_base = 'sys'
     return mysql_user, mysql_pass, mysql_host, mysql_base
@@ -61,5 +93,5 @@ if __name__ == '__main__':
     sp_table = Sparkle(name=str(args.sparkle).split('.')[0], creds=creds)
     fill_table(sp_table, args.sparkle, 1)
     cmn_table = Common(name=str(args.output), creds=creds)
-    combined = cmn_table.table_combine(c9_table, sp_table)
+    combined = cmn_table.table_combine()
     write_excel(combined, args.output)
