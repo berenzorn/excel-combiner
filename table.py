@@ -53,7 +53,7 @@ class Table:
         self.table_execute(truncate)
 
     def table_drop(self):
-        drop = f"DROP TABLE {self.name};"
+        drop = f"DROP TABLE IF EXISTS {self.name};"
         self.table_execute(drop)
 
     def table_make(self):

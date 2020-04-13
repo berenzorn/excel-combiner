@@ -13,6 +13,7 @@ class C9(table.Table):
         self.table_execute(insert)
 
     def table_make(self):
+        self.table_execute(f"DROP TABLE IF EXISTS {self.name}")
         create = (f"CREATE TABLE {self.name} (`id` VARCHAR(20) NOT NULL, `country` VARCHAR(10) NULL, `network` VARCHAR(120) NULL, "
                   f"`tadig` VARCHAR(10) NULL, `mcc` VARCHAR(15) NULL, `mnoid` INT NULL, `profile` VARCHAR(10) NULL, "
                   f"`ws_price` FLOAT NULL, `ws_inc` INT NULL, `retail_price` FLOAT NULL, `rp_inc` INT NULL, `4g` VARCHAR(10) NULL, "
@@ -31,6 +32,7 @@ class Sparkle(table.Table):
         self.table_execute(insert)
 
     def table_make(self):
+        self.table_execute(f"DROP TABLE IF EXISTS {self.name}")
         create = (f"CREATE TABLE {self.name} (`id` INT NOT NULL AUTO_INCREMENT, `area` VARCHAR(45) NULL, `country` VARCHAR(45) NULL, "
                   f"`partner_name` VARCHAR(100) NULL, `tadig` VARCHAR(10) NULL, `moc` FLOAT NULL, `mtc` INT NULL, `sms_mo` FLOAT NULL, "
                   f"`sms_mt` INT NULL, `gprs` FLOAT NULL, PRIMARY KEY (`id`));")
@@ -94,5 +96,7 @@ if __name__ == '__main__':
     cmn_table = Common(name=str(args.output), creds=creds)
     combined = cmn_table.table_combine()
     write_excel(combined, args.output)
+    c9_table.table_execute(f"DROP TABLE IF EXISTS {c9_table.name}")
+    sp_table.table_execute(f"DROP TABLE IF EXISTS {sp_table.name}")
     c9_table.end_table_connect()
     sp_table.end_table_connect()

@@ -14,6 +14,7 @@ class C9(Table):
         self.table_execute(insert)
 
     def table_make(self):
+        self.table_execute(f"DROP TABLE IF EXISTS {self.name}")
         create = (f"CREATE TABLE {self.name} (`id` VARCHAR(20) NOT NULL, `country` VARCHAR(10) NULL, `network` VARCHAR(120) NULL, "
                   f"`tadig` VARCHAR(10) NULL, `mcc` VARCHAR(15) NULL, `mnoid` INT NULL, `profile` VARCHAR(10) NULL, "
                   f"`ws_price` FLOAT NULL, `ws_inc` INT NULL, `retail_price` FLOAT NULL, `rp_inc` INT NULL, `4g` VARCHAR(10) NULL, "
@@ -79,8 +80,9 @@ if __name__ == '__main__':
     c9_table = C9(name=str(args.c9).split('.')[0], creds=creds)
     fill_table(c9_table, args.c9, 3)
     c9_table.fetch_countries()
-    c9_table.end_table_connect()
     cmn_table = Common(name=str(args.output), creds=creds)
     combined = cmn_table.table_combine(c9_table.name)
     write_excel(combined, args.output)
+    c9_table.table_execute(f"DROP TABLE IF EXISTS {c9_table.name}")
+    c9_table.end_table_connect()
 
