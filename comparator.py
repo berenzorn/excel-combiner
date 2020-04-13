@@ -49,8 +49,8 @@ def read_excel(filename, skiprows) -> list:
 
 def write_excel(combined: list, filename: str):
     df = pd.DataFrame(combined,
-                      columns=['country', 'network', 'tadig', 'mcc', 'mnoid', 'profile', 'ws_price',
-                               'ws_inc', 'retail_price', 'rp_inc', '4g', 'blocking', 'cheapest', 'differ'])
+                      columns=['country', 'network', 'tadig', 'mcc', 'mnoid', 'profile', 'ws_price', 'ws_inc',
+                               'retail_price', 'rp_inc', '4g', 'blocking', 'cheapest_prev', 'cheapest_curr', 'differ'])
     df.to_excel(filename)
 
 
