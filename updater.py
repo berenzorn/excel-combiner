@@ -83,6 +83,6 @@ if __name__ == '__main__':
     cmn_table = Common(name=str(args.output), creds=creds)
     combined = cmn_table.table_combine(c9_table.name)
     write_excel(combined, args.output)
-    c9_table.table_execute(f"DROP TABLE IF EXISTS {c9_table.name}")
+    # c9_table.table_execute(f"DROP TABLE IF EXISTS {c9_table.name}")
     c9_table.end_table_connect()
 

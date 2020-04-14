@@ -22,7 +22,7 @@ class C9(Table):
         self.table_execute(create)
 
     def show_difference(self, prev):
-        self.table_execute(f"ALTER TABLE {self.name} ADD COLUMN `differ` INT NULL AFTER `cheapest`;")
+        self.table_execute(f"ALTER TABLE {self.name} ADD COLUMN `differ` INT NULL;")
         self.table_execute(f"UPDATE {self.name} AS C CROSS JOIN (SELECT {prev.name}.id, {prev.name}.cheapest, {self.name}.cheapest AS MARK "
                            f"FROM {prev.name} CROSS JOIN {self.name} on {prev.name}.id = {self.name}.id WHERE {prev.name}.cheapest IS NULL "
                            f"AND {self.name}.cheapest IS NOT NULL) AS F USING (id) SET C.differ = '1' WHERE F.MARK IS NOT NULL;")
@@ -30,13 +30,26 @@ class C9(Table):
         # self.table_execute(f"UPDATE {self.name} SET `cheapest_prev` = (SELECT `cheapest` FROM {prev.name} WHERE {self.name}id = {prev.name}.id);")
         self.cnx.commit()
 
+    def show_new_ops(self, prev):
+        self.table_execute(f"SELECT id FROM {self.name};")
+        curr_set = set(self.cursor.fetchall())
+        self.table_execute(f"SELECT id FROM {prev.name};")
+        prev_set = set(self.cursor.fetchall())
+        added_ops = curr_set - prev_set
+        # removed_ops = prev_set - curr_set
+        self.table_execute(f"ALTER TABLE {self.name} ADD COLUMN `new_ops` VARCHAR(10) NULL;")
+        for i in added_ops:
+            self.table_execute(f"UPDATE {self.name} SET {self.name}.new_ops = 'new' WHERE id = '{i[0]}';")
+        # for i in removed_ops:
+        #     self.table_execute(f"INSERT INTO {self.name} ")
+
 
 class Common(Table):
     def table_combine(self, prev, curr) -> list:
         # self.table_execute(f"SELECT * FROM {name};")
         self.table_execute(f"SELECT {curr}.id, {curr}.country, {curr}.network, {curr}.tadig, {curr}.mcc, {curr}.mnoid, {curr}.profile, {prev}.ws_price, "
                            f"{curr}.ws_price, {prev}.retail_price, {curr}.retail_price, {curr}.4g, {curr}.blocking, {prev}.cheapest, {curr}.cheapest, "
-                           f"{curr}.differ from {prev} cross join {curr} on {prev}.id = {curr}.id;")
+                           f"{curr}.differ, {curr}.new_ops from {curr} LEFT OUTER JOIN {prev} on {curr}.id = {prev}.id;")
         return self.cursor.fetchall()
 
 
@@ -56,7 +69,7 @@ def read_excel(filename, skiprows) -> list:
 def write_excel(combined: list, filename: str):
     df = pd.DataFrame(combined,
                       columns=['id', 'country', 'network', 'tadig', 'mcc', 'mnoid', 'profile', 'ws_price_prev', 'ws_price_curr',
-                               'retail_price_prev', 'retail_price_curr', '4g', 'blocking', 'cheapest_prev', 'cheapest_curr', 'differ'])
+                               'retail_price_prev', 'retail_price_curr', '4g', 'blocking', 'cheapest_prev', 'cheapest_curr', 'differ', 'new_ops'])
     df.to_excel(filename)
 
 
@@ -87,11 +100,12 @@ if __name__ == '__main__':
     c9_update = C9(name=str(args.update).split('.')[0], creds=creds)
     fill_table(c9_update, args.update, 1)
     c9_update.show_difference(c9_table)
+    c9_update.show_new_ops(c9_table)
 
     cmn_table = Common(name=str(args.output), creds=creds)
     combined = cmn_table.table_combine(c9_table.name, c9_update.name)
     write_excel(combined, args.output)
-    c9_table.table_drop()
-    c9_update.table_drop()
+    # c9_table.table_drop()
+    # c9_update.table_drop()
     c9_table.end_table_connect()
     c9_update.end_table_connect()
