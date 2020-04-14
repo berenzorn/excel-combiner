@@ -34,9 +34,9 @@ class C9(Table):
 class Common(Table):
     def table_combine(self, prev, curr) -> list:
         # self.table_execute(f"SELECT * FROM {name};")
-        self.table_execute(f"SELECT {curr}.id, {curr}.country, {curr}.network, {curr}.tadig, {curr}.mcc, {curr}.mnoid, {curr}.profile, {curr}.ws_price, "
-                           f"{curr}.ws_inc, {curr}.retail_price, {curr}.rp_inc, {curr}.4g, {curr}.blocking, {prev}.cheapest, {curr}.cheapest, {curr}.differ "
-                           f"from {prev} cross join {curr} on {prev}.id = {curr}.id;")
+        self.table_execute(f"SELECT {curr}.id, {curr}.country, {curr}.network, {curr}.tadig, {curr}.mcc, {curr}.mnoid, {curr}.profile, {prev}.ws_price, "
+                           f"{curr}.ws_price, {prev}.retail_price, {curr}.retail_price, {curr}.4g, {curr}.blocking, {prev}.cheapest, {curr}.cheapest, "
+                           f"{curr}.differ from {prev} cross join {curr} on {prev}.id = {curr}.id;")
         return self.cursor.fetchall()
 
 
@@ -55,8 +55,8 @@ def read_excel(filename, skiprows) -> list:
 
 def write_excel(combined: list, filename: str):
     df = pd.DataFrame(combined,
-                      columns=['id', 'country', 'network', 'tadig', 'mcc', 'mnoid', 'profile', 'ws_price', 'ws_inc',
-                               'retail_price', 'rp_inc', '4g', 'blocking', 'cheapest_prev', 'cheapest_curr', 'differ'])
+                      columns=['id', 'country', 'network', 'tadig', 'mcc', 'mnoid', 'profile', 'ws_price_prev', 'ws_price_curr',
+                               'retail_price_prev', 'retail_price_curr', '4g', 'blocking', 'cheapest_prev', 'cheapest_curr', 'differ'])
     df.to_excel(filename)
 
 
