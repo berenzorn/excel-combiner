@@ -43,6 +43,21 @@ class C9(Table):
         # for i in removed_ops:
         #     self.table_execute(f"INSERT INTO {self.name} ")
 
+    def plmn_make(self, prof):
+        self.cursor.execute(f"SELECT mcc, 4g from {self.name} where cheapest is not null and profile = '{prof}';")
+        g_list = self.cursor.fetchall()
+        plmn_list = []
+        for x in g_list:
+            mcc = x[0].split('/')[0]
+            mnc = x[0].split('/')[1]
+            if x[1] is None:
+                plmn_list.append(f"{mcc},{mnc},3G")
+                # print(f"{mcc},{mnc},3G")
+            else:
+                plmn_list.append(f"{mcc},{mnc},4G")
+                # print(f"{mcc},{mnc},4G")
+        return plmn_list
+
 
 class Common(Table):
     def table_combine(self, prev, curr) -> list:
@@ -73,6 +88,12 @@ def write_excel(combined: list, filename: str):
     df.to_excel(filename)
 
 
+def write_csv(combined: list, filename: str):
+    with open(filename, 'w') as file:
+        for x in combined:
+            file.write(x + '\n')
+
+
 def fill_table(table, name: str, skiprows: int):
     if table.table_check():
         table.table_drop()
@@ -101,7 +122,9 @@ if __name__ == '__main__':
     fill_table(c9_update, args.update, 1)
     c9_update.show_difference(c9_table)
     c9_update.show_new_ops(c9_table)
-
+    write_csv(c9_update.plmn_make('G'), 'plmn_G.txt')
+    write_csv(c9_update.plmn_make('G+'), 'plmn_Gplus.txt')
+    write_csv(c9_update.plmn_make('UL'), 'plmn_UL.txt')
     cmn_table = Common(name=str(args.output), creds=creds)
     combined = cmn_table.table_combine(c9_table.name, c9_update.name)
     write_excel(combined, args.output)

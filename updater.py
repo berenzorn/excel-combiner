@@ -26,6 +26,9 @@ class C9(Table):
         self.cursor.execute(f"SELECT country from {self.name};")
         country_set = list(set(self.cursor.fetchall()))
         country_list = [x[0] for x in country_set]
+        # with open("country.txt", 'w') as file:
+        #     for x in country_list:
+        #         file.write(x + '\n')
         for i in country_list:
             self.table_execute(f"UPDATE {self.name} AS C INNER JOIN (SELECT country, MIN(ws_price) as MINI, cheapest from {self.name} "
                                f"where country = '{i}') AS A USING (country) SET C.cheapest = '1' WHERE C.ws_price = A.MINI;")
