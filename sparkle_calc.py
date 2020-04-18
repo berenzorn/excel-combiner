@@ -27,8 +27,7 @@ class Sparkle(table.Table):
         string = ""
         for i in row:
             string = f"{string}, '{str(i).rstrip()}'"
-        insert = f"INSERT into {self.name} (area, country, partner_name, " \
-            f"tadig, moc, mtc, sms_mo, sms_mt, gprs) VALUES ({string[2:]});"
+        insert = f"INSERT into {self.name} (area, country, partner_name, tadig, moc, mtc, sms_mo, sms_mt, gprs) VALUES ({string[2:]});"
         self.table_execute(insert)
 
     def table_make(self):
