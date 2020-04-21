@@ -57,14 +57,18 @@ class Updater(Table):
         self.table_execute(
             f"UPDATE {self.name} SET {self.name}.differ = '1' WHERE cheapest IS NOT NULL AND {self.name}.new_ops = 'new';")
 
-    def plmn_make(self, prof):
+    def plmn_make(self, prof, array):
         self.cursor.execute(f"SELECT mcc, 4g from {self.name} where cheapest is not null and profile = '{prof}';")
         g_list = self.cursor.fetchall()
         plmn_list = []
         for x in g_list:
-            (plmn_list.append(f"{x[0].split('/')[0]},{x[0].split('/')[1]},3G")
-             if x[1] is None else
-             plmn_list.append(f"{x[0].split('/')[0]},{x[0].split('/')[1]},4G"))
+            # 3G/4G division
+            # (plmn_list.append(f"{x[0].split('/')[0]},{x[0].split('/')[1]},3G")
+            #  if x[1] is None else
+            #  plmn_list.append(f"{x[0].split('/')[0]},{x[0].split('/')[1]},4G"))
+
+            # 3G only
+            plmn_list.append(f"{x[0].split('/')[0]},{x[0].split('/')[1]},3G")
         return plmn_list
 
     def table_combine(self, prev) -> list:

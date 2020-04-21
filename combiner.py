@@ -1,6 +1,7 @@
 import argparse
 import pandas as pd
 from updater import Updater
+from table import Table
 import datetime
 import random
 
@@ -45,6 +46,34 @@ def fill_table(table, name: str, skiprows: int):
         table.table_append(row=row)
     table.table_execute(f"UPDATE {table.name} SET `4g` = NULL where `4g` = 'nan';")
     table.table_execute(f"UPDATE {table.name} SET `blocking` = NULL where `blocking` = 'nan';")
+    table.table_execute(f"DELETE FROM {table.name} WHERE `blocking` IS NOT NULL;")
+
+
+def load_mccmnc(filename, creds):
+
+    class MCC(Table):
+        def table_make(self):
+            self.table_execute(f"DROP TABLE IF EXISTS {self.name}")
+            self.table_execute(
+                f"CREATE TABLE {self.name} (`id` INT NOT NULL AUTO_INCREMENT, `mcc` VARCHAR(5) NULL, "
+                f"`mnc` VARCHAR(5) NULL, `length` INT NULL, `full` VARCHAR(5) NULL, PRIMARY KEY (`id`));")
+
+        def table_append(self, row: tuple):
+            self.table_execute(f"INSERT INTO {self.name} (`mcc`, `mnc`, `length`, `full`) "
+                               f"VALUES ({row[0]}, {row[1]}, {row[2]}, {row[3]});")
+
+    with open(filename, 'r') as file:
+        farray = file.readlines()
+    array = []
+    for i in farray:
+        row = i.split("\t")
+        mnc = f"0{row[1]}" if len(row[1]) == 2 else row[1]
+        array.append((row[0], row[1], len(row[1]), mnc))
+    table = MCC(filename.split('.')[0], creds)
+    table.table_make()
+    for row in array:
+        table.table_append(row)
+    table.end_table_connect()
 
 
 if __name__ == '__main__':
@@ -58,28 +87,30 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     creds = config()
-    time = datetime.datetime.now()
-    rnd1 = int(random.random()*1357911)
-    rnd2 = int(random.random()*24681012)
-    c9_table_prev = Updater(name=f"stage1_{rnd1}", creds=creds)
-    c9_table_curr = Updater(name=f"stage1_{rnd2}", creds=creds)
-    fill_table(c9_table_prev, args.previous, 3)
-    fill_table(c9_table_curr, args.current, 3)
-    c9_table_prev.fetch_countries(args.clist)
-    c9_table_curr.fetch_countries(args.clist)
-    c9_table_curr.show_difference(c9_table_prev)
-    c9_table_curr.show_new_ops(c9_table_prev)
+    load_mccmnc('mccmnc.txt', creds)
+    # time = datetime.datetime.now()
+    # rnd1 = int(random.random()*1357911)
+    # rnd2 = int(random.random()*24681012)
+    # c9_table_prev = Updater(name=f"stage1_{rnd1}", creds=creds)
+    # c9_table_curr = Updater(name=f"stage1_{rnd2}", creds=creds)
+    # fill_table(c9_table_prev, args.previous, 3)
+    # fill_table(c9_table_curr, args.current, 3)
+    # c9_table_prev.fetch_countries(args.clist)
+    # c9_table_curr.fetch_countries(args.clist)
+    # c9_table_curr.show_difference(c9_table_prev)
+    # c9_table_curr.show_new_ops(c9_table_prev)
+    #
+    # if args.plist:
+    #     write_csv(c9_table_curr.plmn_make('G', mcc_array), 'plmn-G.txt')
+    #     write_csv(c9_table_curr.plmn_make('G+', mcc_array), 'plmn-Gplus.txt')
+    #     write_csv(c9_table_curr.plmn_make('UL', mcc_array), 'plmn-UL.txt')
+    #
+    # combined = c9_table_curr.table_combine(c9_table_prev)
+    # write_excel(combined, f"{str(args.output)}.xlsx")
+    # if not args.keep:
+    #     c9_table_prev.table_drop()
+    #     c9_table_curr.table_drop()
+    # c9_table_prev.end_table_connect()
+    # c9_table_curr.end_table_connect()
+    # print(datetime.datetime.now() - time)
 
-    if args.plist:
-        write_csv(c9_table_curr.plmn_make('G'), 'plmn-G.txt')
-        write_csv(c9_table_curr.plmn_make('G+'), 'plmn-Gplus.txt')
-        write_csv(c9_table_curr.plmn_make('UL'), 'plmn-UL.txt')
-
-    combined = c9_table_curr.table_combine(c9_table_prev)
-    write_excel(combined, f"{str(args.output)}.xlsx")
-    if not args.keep:
-        c9_table_prev.table_drop()
-        c9_table_curr.table_drop()
-    c9_table_prev.end_table_connect()
-    c9_table_curr.end_table_connect()
-    print(datetime.datetime.now() - time)
