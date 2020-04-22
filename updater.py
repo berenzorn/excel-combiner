@@ -57,18 +57,38 @@ class Updater(Table):
         self.table_execute(
             f"UPDATE {self.name} SET {self.name}.differ = '1' WHERE cheapest IS NOT NULL AND {self.name}.new_ops = 'new';")
 
-    def plmn_make(self, prof, array):
+    def plmn_make(self, prof, filename):
+
+        def load_mccmnc():
+            with open(filename, 'r') as file:
+                farray = file.readlines()
+            array = []
+            for i in farray:
+                row = i.split("\t")
+                mnc = f"0{row[1]}" if len(row[1]) == 2 else row[1]
+                array.append((row[0], row[1], len(row[1]), mnc.strip()))
+            return array
+
+        def get_mcc_row(mccmnc: list):
+            array = load_mccmnc()
+            for i in array:
+                if i[0] == mccmnc[0] and i[3] == mccmnc[1]:
+                    mccmnc[1] = i[1]
+                    break
+            return mccmnc
+
         self.cursor.execute(f"SELECT mcc, 4g from {self.name} where cheapest is not null and profile = '{prof}';")
         g_list = self.cursor.fetchall()
         plmn_list = []
         for x in g_list:
             # 3G/4G division
-            # (plmn_list.append(f"{x[0].split('/')[0]},{x[0].split('/')[1]},3G")
+            # (plmn_list.append(f"{row[0]},{row[1]},3G")
             #  if x[1] is None else
-            #  plmn_list.append(f"{x[0].split('/')[0]},{x[0].split('/')[1]},4G"))
+            #  plmn_list.append(f"{row[0]},{row[1]},4G"))
 
             # 3G only
-            plmn_list.append(f"{x[0].split('/')[0]},{x[0].split('/')[1]},3G")
+            row = get_mcc_row(x[0].split('/'))
+            plmn_list.append(f"{row[0]},{row[1]},3G")
         return plmn_list
 
     def table_combine(self, prev) -> list:
